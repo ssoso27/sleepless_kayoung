@@ -9,6 +9,9 @@ Author: Yang Sohee <ssoyapdev@gmail.com>
 
 import pandas as pd
 
+import re
+import os
+import sys
 import datetime
 from datetime import time
 
@@ -19,7 +22,7 @@ def help():
     3. 초파리 수면 엑셀 데이터 (이후 원본이라 칭함) 의 이름을 입력한다.
     """)
 
-def get_headers(length):
+def get_headers(length, start_idx=0):
     alpabet = [ chr(i) for i in range(ord('A'), ord('Z')+1)]
     headers = []
 
@@ -35,8 +38,10 @@ def get_headers(length):
         else:
             headers.extend(names)
             length = length - len(names)
-    headers[0] = "Date"
-    headers[1] = "Time"
+    headers[0+start_idx] = "Date"
+    headers[1+start_idx] = "Time"
+    if start_idx > 0:
+        headers[0] = "Kayoung"
     return headers
 
 
@@ -107,10 +112,16 @@ class HappyMachine:
             print(e)
             print(f"{idx} {_date} {_time}")
 
-    def load_data(self, filename):
+    def init_filename(self, filename):
+        p = re.search(r"\/(?P<name>.*)[.].*$", filename)
+        self.filename = p.group()
+
+    def load_data(self, filename, start_idx=0):
+        self.init_filename(filename)
         df = pd.read_excel(filename, header=None)
-        header = get_headers(df.shape[1])
+        header = get_headers(df.shape[1], start_idx)
         df.columns = header
+        self.init_data(header[2+start_idx:])
 
         # make group tag
         df["group"] = [ self.get_real_date(row['Date'], row['Time'], idx) for idx, row in df.iterrows() ]
@@ -120,40 +131,58 @@ class HappyMachine:
             if g != "skip":
                 self.data_by_date[g] = groups.get_group(g)
 
-    def init_date(self, _date):
-        _date = str(_date.date())
-        self.d_total_sleep_time[_date] = {}
-        self.d_sleep_count[_date] = {}
-        self.d_max_sleep_time[_date] = {}
-        self.d_first_sleep_at[_date] = {}
+    def init_data(self, _names):
+        self.d_total_sleep_time = {_name: {} for _name in _names}
+        self.d_sleep_count = {_name: {} for _name in _names}
+        self.d_max_sleep_time = {_name: {} for _name in _names}
+        self.d_first_sleep_at = {_name: {} for _name in _names}
 
-    def update_data(self, _date, _name, _chopari):
+    def update_data(self, _name, _date, _chopari):
         _date = str(_date.date())
-        self.d_total_sleep_time[_date][_name] = _chopari.total_sleep_time
-        self.d_sleep_count[_date][_name] = _chopari.sleep_count
-        self.d_max_sleep_time[_date][_name] = _chopari.max_sleep_time
-        self.d_first_sleep_at[_date][_name] = _chopari.first_sleep_at
+        self.d_total_sleep_time[_name][_date] = _chopari.total_sleep_time
+        self.d_sleep_count[_name][_date] = _chopari.sleep_count
+        self.d_max_sleep_time[_name][_date] = _chopari.max_sleep_time
+        self.d_first_sleep_at[_name][_date] = _chopari.first_sleep_at
 
     def check_sleep(self):
         for date, data in self.data_by_date.items():
             print(f"{date.date()} 의 초파리 수면을 분석합니다...")
 
-            self.init_date(date)
-
             for c in data.columns:
-                if c in ["Date", "Time", "group"]:
+                if c in ["Kayoung", "Date", "Time", "group"]:
                     continue
 
                 chopari = Chopari(c, data[c])
                 chopari.check_sleep()
 
-                self.update_data(date, c, chopari)
+                self.update_data(c, date, chopari)
                 print(chopari)
 
+    def save_to_excel(self, output_filename=None):
+        if not output_filename:
+            output_filename = f"{self.filename.split('.')[0]}_{datetime.datetime.now().date()}.xlsx"
+        output_filename = "output/" + output_filename
+
+        print(f"분석 결과를 {output_filename} 으로 저장합니다...")
+        mode = "a" if os.path.exists(output_filename) else "w"
+        with pd.ExcelWriter(output_filename, mode=mode) as writer:
+            for _type in ["total_sleep_time", "sleep_count", "max_sleep_time", "first_sleep_at"]:
+                print(f"{_type} 저장중...")
+                _data = getattr(self, f"d_{_type}")
+                df = pd.DataFrame.from_dict(_data)
+                df.to_excel(writer, sheet_name=_type)
+
+        print(f"저장 완료")
+
+
+input_file = sys.argv[1]
+try:
+    start_idx = int(sys.argv[2])
+except:
+    start_idx = 0
+
 main = HappyMachine()
-main.load_data("220829.xlsx")
+main.load_data(input_file, start_idx)
 main.check_sleep()
 
-d1 = main.d_total_sleep_time
-df1 = pd.DataFrame.from_dict(d1)
-print(df1)
+main.save_to_excel()
