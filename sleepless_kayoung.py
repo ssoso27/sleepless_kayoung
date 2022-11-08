@@ -74,7 +74,7 @@ class Chopari:
 
     def check_sleep(self):
         time = 0
-        for movement in self.movement_data + [-1]:
+        for i, movement in enumerate(self.movement_data + [-1]):
             if movement == 0:
                 time += 1
                 continue
@@ -83,7 +83,7 @@ class Chopari:
                 self.incr_total_sleep_time(time)
                 self.incr_sleep_count()
                 self.update_max_sleep_time(time)
-                self.update_first_sleep_at(time)
+                self.update_first_sleep_at(i-time+1)
             time = 0
             #print(f"time: {time} | movement: {movement} | self.sleep_count {self.sleep_count} | self.total_sleep_time {self.total_sleep_time}")
 
