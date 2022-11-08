@@ -49,9 +49,23 @@ class Chopari:
         self.total_sleep_time = 0
         self.sleep_count = 0
         self.max_sleep_time = 0
+        self.first_sleep_at = -1
 
     def __str__(self):
-        return f"[초파리{self.name}] 총수면 {self.total_sleep_time}m, 수면횟수{self.sleep_count}회, 최대수면 {self.max_sleep_time}m"
+        return f"[초파리{self.name}] 총수면 {self.total_sleep_time}m, 수면횟수{self.sleep_count}회, 최대수면 {self.max_sleep_time}m 수면도입시간 {self.first_sleep_at}m"
+
+    def incr_total_sleep_time(self, time):
+        self.total_sleep_time += time
+
+    def incr_sleep_count(self, n=1):
+        self.sleep_count += n
+
+    def update_max_sleep_time(self, time):
+        self.max_sleep_time = max(self.max_sleep_time, time)
+
+    def update_first_sleep_at(self, time):
+        if self.first_sleep_at < 0:
+            self.first_sleep_at = time
 
     def check_sleep(self):
         time = 0
@@ -61,9 +75,10 @@ class Chopari:
                 continue
 
             if time >= self.MIN_TIME:
-                self.total_sleep_time += time
-                self.sleep_count += 1
-                self.max_sleep_time = max(self.max_sleep_time, time)
+                self.incr_total_sleep_time(time)
+                self.incr_sleep_count()
+                self.update_max_sleep_time(time)
+                self.update_first_sleep_at(time)
             time = 0
             #print(f"time: {time} | movement: {movement} | self.sleep_count {self.sleep_count} | self.total_sleep_time {self.total_sleep_time}")
 
@@ -73,6 +88,12 @@ class HappyMachine:
         self.data_by_date = {}
         self.start_time = time.fromisoformat(start_time)
         self.end_time = time.fromisoformat(end_time)
+
+        # [{ "0000-00-00": [{"C": 10}, {"D": 21}, ...}, ...]
+        self.d_total_sleep_time = {}
+        self.d_sleep_count = {}
+        self.d_max_sleep_time = {}
+        self.d_first_sleep_at = {}
 
     def get_real_date(self, _date, _time, idx):
         try:
@@ -99,9 +120,25 @@ class HappyMachine:
             if g != "skip":
                 self.data_by_date[g] = groups.get_group(g)
 
+    def init_date(self, _date):
+        _date = str(_date.date())
+        self.d_total_sleep_time[_date] = {}
+        self.d_sleep_count[_date] = {}
+        self.d_max_sleep_time[_date] = {}
+        self.d_first_sleep_at[_date] = {}
+
+    def update_data(self, _date, _name, _chopari):
+        _date = str(_date.date())
+        self.d_total_sleep_time[_date][_name] = _chopari.total_sleep_time
+        self.d_sleep_count[_date][_name] = _chopari.sleep_count
+        self.d_max_sleep_time[_date][_name] = _chopari.max_sleep_time
+        self.d_first_sleep_at[_date][_name] = _chopari.first_sleep_at
+
     def check_sleep(self):
         for date, data in self.data_by_date.items():
             print(f"{date.date()} 의 초파리 수면을 분석합니다...")
+
+            self.init_date(date)
 
             for c in data.columns:
                 if c in ["Date", "Time", "group"]:
@@ -109,8 +146,14 @@ class HappyMachine:
 
                 chopari = Chopari(c, data[c])
                 chopari.check_sleep()
+
+                self.update_data(date, c, chopari)
                 print(chopari)
 
 main = HappyMachine()
 main.load_data("220829.xlsx")
 main.check_sleep()
+
+d1 = main.d_total_sleep_time
+df1 = pd.DataFrame.from_dict(d1)
+print(df1)
