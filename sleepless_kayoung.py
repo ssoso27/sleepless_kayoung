@@ -102,12 +102,19 @@ class HappyMachine:
 
     def get_real_date(self, _date, _time, idx):
         try:
+            assert isinstance(_date, datetime.date)
+            assert isinstance(_time, datetime.time)
+
             real_date = "skip"
             if _time >= self.start_time:
                 real_date = _date
             elif _time <= self.end_time:
                 real_date = _date - datetime.timedelta(days=1)
             return real_date
+        except AssertionError as e:
+            print(e)
+            print(f"{_date} / {_time} return skip...")
+            return "skip"
         except Exception as e:
             print(e)
             print(f"{idx} {_date} {_time}")
