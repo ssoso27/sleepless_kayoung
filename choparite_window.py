@@ -1,3 +1,9 @@
+"""
+Copyright (C) 2023. YangSohee all rights reserved.
+Author: Yang Sohee <ssoyapdev@gmail.com>
+
+Choparite 메인 윈도우 (View)
+"""
 import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
@@ -20,7 +26,7 @@ class ChopariteWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Choparite")
+        self.setWindowTitle("초파리떼 v1.0.0")
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
         # Set general layout
@@ -31,7 +37,7 @@ class ChopariteWindow(QMainWindow):
 
         # Create components
         self._createInputFileLayer()
-        self._createOutputFileLayer()
+        #self._createOutputFileLayer()
         self._createGagLayer()
         self._createLogLayer()
         self._createButtonLayer()
@@ -86,40 +92,37 @@ class ChopariteWindow(QMainWindow):
     def _createButtonLayer(self):
         self.startButton = QPushButton("분석 시작")
         self.startButton.setFixedSize(PARENT_WIDTH, LAYER_HEIGHT)
-
+        self.startButton.setEnabled(True)
         self.generalLayout.addWidget(self.startButton)
 
+        self.saveButton = QPushButton("결과 저장")
+        self.saveButton.setFixedSize(PARENT_WIDTH, LAYER_HEIGHT)
+        self.saveButton.setEnabled(False)
+        self.generalLayout.addWidget(self.saveButton)
 
-    def setLayout1(self):
-        layout1 = QHBoxLayout()
+    """
+    ========================
+    control attributes of components
+    ========================
+    """
+    def setIFileText(self, text):
+        self.iFileBox.setText(text)
+        self.iFileBox.setFocus()
 
-        # create widgets
-        self.label_fname = QLabel("분석할 파일 (.xlsx): ")
-        btn_file = QPushButton("click")
-        btn_file.clicked.connect(self.click_btn_file)
+    def getIFileText(self):
+        return self.iFileBox.text()
 
-        # set widgets
-        layout1.addWidget(self.label_fname)
-        layout1.addWidget(btn_file)
-        return layout1
+    def setOFileText(self, text):
+        self.oFileBox.setText(text)
+        self.oFileBox.setFocus()
 
-    def setLayout2(self):
-        layout2 = QHBoxLayout()
+    def log(self, text):
+        self.logBox.append(text)
 
-        # create widgets
-        btn_run = QPushButton("RUN")
-
-        # set widgets
-        layout2.addWidget(btn_run)
-        return layout2
-
-
-    def click_btn_file(self):
-        fname=QFileDialog.getOpenFileName(self, filter="XLSX files (*.xlsx, *.xls)")
-
-        if fname[0]:
-            self.filename = fname[0]
-            self.label_fname.clear()
-            self.label_fname.setText("선택됨: %s" % fname[0].split("/")[-1])
+    def toggleButton(self):
+        if self.startButton.isEnabled():
+            self.startButton.setEnabled(False)
+            self.saveButton.setEnabled(True)
         else:
-            print("파일 안 골랐음")
+            self.startButton.setEnabled(True)
+            self.saveButton.setEnabled(False)

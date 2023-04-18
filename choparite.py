@@ -1,2 +1,0 @@
-class Choparite:
-    pass
