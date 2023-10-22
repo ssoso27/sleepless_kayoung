@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 
 """
-Copyright (C) 2022. YangSohee all rights reserved.
+Copyright (C) 2022-2023. YangSohee all rights reserved.
 Author: Yang Sohee <ssoyapdev@gmail.com>
 
 가영이를 위한 초파리 수면시간 측정 프로그램
@@ -119,13 +119,17 @@ class HappyMachine:
             print(e)
             print(f"{idx} {_date} {_time}")
 
-    def init_filename(self, filename):
+    def init_filename(self, filename, sheet_name=0):
         p = re.search(r"\/(?P<name>.*)[.].*$", filename)
         self.filename = p.group()
+        if sheet_name:
+            t = self.filename.split(".")
+            self.filename = t[0] + f"_{sheet_name}." + t[1]
 
-    def load_data(self, filename, start_idx=0):
-        self.init_filename(filename)
-        df = pd.read_excel(filename, header=None)
+    def load_data(self, filename, sheet_name=0, start_idx=1):
+        print(f"(load_data) {filename} {sheet_name}")
+        self.init_filename(filename, sheet_name)
+        df = pd.read_excel(filename, header=None, sheet_name=sheet_name)
         header = get_headers(df.shape[1], start_idx)
         df.columns = header
         self.init_data(header[2+start_idx:])
@@ -137,6 +141,7 @@ class HappyMachine:
         for g in groups.groups.keys():
             if g != "skip":
                 self.data_by_date[g] = groups.get_group(g)
+        return self.filename
 
     def init_data(self, _names):
         self.d_total_sleep_time = {_name: {} for _name in _names}
@@ -182,14 +187,13 @@ class HappyMachine:
         print(f"저장 완료")
 
 
+sheet_name = 0
 input_file = sys.argv[1]
-try:
-    start_idx = int(sys.argv[2])
-except:
-    start_idx = 0
+if len(sys.argv) == 3:
+    sheet_name = sys.argv[2]
 
 main = HappyMachine()
-main.load_data(input_file, start_idx)
+main.load_data(input_file, sheet_name)
 main.check_sleep()
 
 main.save_to_excel()
