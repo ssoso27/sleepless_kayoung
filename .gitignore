@@ -1,4 +1,7 @@
 # created by virtualenv automatically
 /data
 /output
+/dist
+/build
+/__pycache__
 .DS_Store
